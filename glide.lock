@@ -1,5 +1,5 @@
 hash: 2b4f246c0d4917ef7ab0afa87edf3fedb2845dd64807481ad8e0ee0c61d6f1ac
-updated: 2017-12-12T23:51:41.16511087+09:00
+updated: 2017-12-13T02:13:11.000643717+09:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -16,7 +16,7 @@ imports:
 - name: github.com/json-iterator/go
   version: f7279a603edee96fe7764d3de9c6ff8cf9970994
 - name: github.com/kkohtaka/go-bitflyer
-  version: 75d256e13ad32bff8537a6de2045cdee0dcacef5
+  version: d68d3059add070d16bc4ddde411a63c9c22763ee
   subpackages:
   - pkg/api
   - pkg/api/auth
@@ -24,6 +24,7 @@ imports:
   - pkg/api/v1
   - pkg/api/v1/addresses
   - pkg/api/v1/balance
+  - pkg/api/v1/bankaccounts
   - pkg/api/v1/board
   - pkg/api/v1/chats
   - pkg/api/v1/coinins
