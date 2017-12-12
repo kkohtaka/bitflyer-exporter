@@ -1,5 +1,5 @@
-hash: f04077bc3979e7ecefcff4dca12c9ffd8e51773df2494a7a283aad338c2f2121
-updated: 2017-12-12T15:31:18.189961502+09:00
+hash: 2b4f246c0d4917ef7ab0afa87edf3fedb2845dd64807481ad8e0ee0c61d6f1ac
+updated: 2017-12-12T23:51:41.16511087+09:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -9,6 +9,33 @@ imports:
   version: 1e59b77b52bf8e4b449a57e6f79f21226d571845
   subpackages:
   - proto
+- name: github.com/google/go-querystring
+  version: 53e6ce116135b80d037921a7fdd5138cf32d7a8a
+  subpackages:
+  - query
+- name: github.com/json-iterator/go
+  version: f7279a603edee96fe7764d3de9c6ff8cf9970994
+- name: github.com/kkohtaka/go-bitflyer
+  version: 75d256e13ad32bff8537a6de2045cdee0dcacef5
+  subpackages:
+  - pkg/api
+  - pkg/api/auth
+  - pkg/api/httpclient
+  - pkg/api/v1
+  - pkg/api/v1/addresses
+  - pkg/api/v1/balance
+  - pkg/api/v1/board
+  - pkg/api/v1/chats
+  - pkg/api/v1/coinins
+  - pkg/api/v1/coinouts
+  - pkg/api/v1/collateral
+  - pkg/api/v1/collateralaccounts
+  - pkg/api/v1/executions
+  - pkg/api/v1/health
+  - pkg/api/v1/markets
+  - pkg/api/v1/permissions
+  - pkg/api/v1/ticker
+  - pkg/api/v1/types
 - name: github.com/matttproud/golang_protobuf_extensions
   version: c12348ce28de40eed0136aa2b644d0ee0650e56c
   subpackages:

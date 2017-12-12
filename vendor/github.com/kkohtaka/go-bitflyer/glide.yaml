@@ -1,0 +1,7 @@
+package: github.com/kkohtaka/go-bitflyer
+import:
+- package: github.com/google/go-querystring
+  subpackages:
+  - query
+- package: github.com/json-iterator/go
+  version: 1.0.4
