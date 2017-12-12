@@ -13,6 +13,7 @@ import (
 	"github.com/kkohtaka/go-bitflyer/pkg/api/v1"
 	"github.com/kkohtaka/go-bitflyer/pkg/api/v1/health"
 	"github.com/kkohtaka/go-bitflyer/pkg/api/v1/markets"
+	"github.com/kkohtaka/go-bitflyer/pkg/api/v1/ticker"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -43,9 +44,18 @@ type Exporter struct {
 	client *v1.Client
 	mutex  sync.RWMutex
 
-	up             prometheus.Gauge
-	totalScrapes   prometheus.Counter
-	exchangeStatus *prometheus.GaugeVec
+	up              prometheus.Gauge
+	totalScrapes    prometheus.Counter
+	exchangeStatus  *prometheus.GaugeVec
+	ltp             *prometheus.GaugeVec
+	bestBid         *prometheus.GaugeVec
+	bestAsk         *prometheus.GaugeVec
+	bestBidSize     *prometheus.GaugeVec
+	bestAskSize     *prometheus.GaugeVec
+	totalBidDepth   *prometheus.GaugeVec
+	totalAskDepth   *prometheus.GaugeVec
+	volume          *prometheus.GaugeVec
+	volumeByProduct *prometheus.GaugeVec
 }
 
 // Describe sends the descriptors of metrics
@@ -53,6 +63,15 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	e.up.Describe(ch)
 	e.totalScrapes.Describe(ch)
 	e.exchangeStatus.Describe(ch)
+	e.ltp.Describe(ch)
+	e.bestBid.Describe(ch)
+	e.bestAsk.Describe(ch)
+	e.bestBidSize.Describe(ch)
+	e.bestAskSize.Describe(ch)
+	e.totalBidDepth.Describe(ch)
+	e.totalAskDepth.Describe(ch)
+	e.volume.Describe(ch)
+	e.volumeByProduct.Describe(ch)
 }
 
 // Collect is called by the Prometheus registry when collecting metrics.
@@ -65,6 +84,15 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	e.up.Collect(ch)
 	e.totalScrapes.Collect(ch)
 	e.exchangeStatus.Collect(ch)
+	e.ltp.Collect(ch)
+	e.bestBid.Collect(ch)
+	e.bestAsk.Collect(ch)
+	e.bestBidSize.Collect(ch)
+	e.bestAskSize.Collect(ch)
+	e.totalBidDepth.Collect(ch)
+	e.totalAskDepth.Collect(ch)
+	e.volume.Collect(ch)
+	e.volumeByProduct.Collect(ch)
 }
 
 func (e *Exporter) scrape() {
@@ -82,6 +110,23 @@ func (e *Exporter) scrape() {
 				log.Println(err)
 			} else {
 				e.setStatus(market.ProductCode, resp.Status)
+			}
+
+			e.totalScrapes.Inc()
+			if resp, err := e.client.Ticker(&ticker.Request{
+				ProductCode: market.ProductCode,
+			}); err != nil {
+				log.Println(err)
+			} else {
+				e.ltp.WithLabelValues(string(market.ProductCode)).Set(resp.LTP)
+				e.bestBid.WithLabelValues(string(market.ProductCode)).Set(resp.BestBid)
+				e.bestAsk.WithLabelValues(string(market.ProductCode)).Set(resp.BestAsk)
+				e.bestBidSize.WithLabelValues(string(market.ProductCode)).Set(resp.BestBidSize)
+				e.bestAskSize.WithLabelValues(string(market.ProductCode)).Set(resp.BestAskSize)
+				e.totalBidDepth.WithLabelValues(string(market.ProductCode)).Set(resp.TotalBidDepth)
+				e.totalAskDepth.WithLabelValues(string(market.ProductCode)).Set(resp.TotalBidDepth)
+				e.volume.WithLabelValues(string(market.ProductCode)).Set(resp.Volume)
+				e.volumeByProduct.WithLabelValues(string(market.ProductCode)).Set(resp.VolumeByProduct)
 			}
 		}
 	}
@@ -140,13 +185,102 @@ func newExporter(authConfig *auth.AuthConfig) *Exporter {
 			},
 			[]string{"level", "product_code"},
 		),
+
+		ltp: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: Namespace,
+				Name:      "last_traded_price",
+				Help:      "The last traded price on bitFlyer",
+			},
+			[]string{"product_code"},
+		),
+
+		bestBid: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: Namespace,
+				Name:      "best_bid",
+				Help:      "The best bid on bitFlyer",
+			},
+			[]string{"product_code"},
+		),
+
+		bestAsk: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: Namespace,
+				Name:      "best_ask",
+				Help:      "The best bid on bitFlyer",
+			},
+			[]string{"product_code"},
+		),
+
+		bestBidSize: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: Namespace,
+				Name:      "best_bid_size",
+				Help:      "The best bid size on bitFlyer",
+			},
+			[]string{"product_code"},
+		),
+
+		bestAskSize: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: Namespace,
+				Name:      "best_ask_size",
+				Help:      "The best bid size on bitFlyer",
+			},
+			[]string{"product_code"},
+		),
+
+		totalBidDepth: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: Namespace,
+				Name:      "total_bid_depth",
+				Help:      "The total depth of bid on bitFlyer",
+			},
+			[]string{"product_code"},
+		),
+
+		totalAskDepth: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: Namespace,
+				Name:      "total_ask_depth",
+				Help:      "The best depth of ask on bitFlyer",
+			},
+			[]string{"product_code"},
+		),
+
+		volume: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: Namespace,
+				Name:      "volume",
+				Help:      "The volume of trades on bitFlyer",
+			},
+			[]string{"product_code"},
+		),
+
+		volumeByProduct: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: Namespace,
+				Name:      "volume_by_product",
+				Help:      "The volume of trades on bitFlyer by product",
+			},
+			[]string{"product_code"},
+		),
 	}
 
 	e.up.Set(0)
 	e.totalScrapes.Add(0)
-
 	for _, productCode := range ProductCodes {
 		e.setStatus(productCode, health.Stop)
+		e.ltp.WithLabelValues(string(productCode)).Set(0)
+		e.bestAsk.WithLabelValues(string(productCode)).Set(0)
+		e.bestBid.WithLabelValues(string(productCode)).Set(0)
+		e.bestAskSize.WithLabelValues(string(productCode)).Set(0)
+		e.bestBidSize.WithLabelValues(string(productCode)).Set(0)
+		e.totalAskDepth.WithLabelValues(string(productCode)).Set(0)
+		e.totalBidDepth.WithLabelValues(string(productCode)).Set(0)
+		e.volume.WithLabelValues(string(productCode)).Set(0)
+		e.volumeByProduct.WithLabelValues(string(productCode)).Set(0)
 	}
 
 	return &e
