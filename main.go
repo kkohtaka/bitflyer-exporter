@@ -5,8 +5,8 @@ package main
 
 import (
 	"flag"
-	"log"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/kkohtaka/go-bitflyer/pkg/api/auth"
@@ -14,8 +14,10 @@ import (
 	"github.com/kkohtaka/go-bitflyer/pkg/api/v1/health"
 	"github.com/kkohtaka/go-bitflyer/pkg/api/v1/markets"
 	"github.com/kkohtaka/go-bitflyer/pkg/api/v1/ticker"
+	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -27,6 +29,9 @@ var (
 	address   = flag.String("listen-address", ":8080", "The address to listen on for HTTP requests.")
 	apiKey    = flag.String("api-key", "", "The API key to access bitFlyer API.")
 	apiSecret = flag.String("api-secret", "", "The API secret to access bitFlyer API.")
+
+	logLevel  = flag.String("log-level", "info", "The log level.")
+	logFormat = flag.String("log-format", "text", "The log format.")
 
 	// ProductCodes are codes of crypt currencies.
 	ProductCodes = []markets.ProductCode{
@@ -99,6 +104,7 @@ func (e *Exporter) scrape() {
 	e.totalScrapes.Inc()
 	if resp, err := e.client.Markets(&markets.Request{}); err != nil {
 		e.up.Set(0)
+		log.WithError(err).Warn("failed to get market list")
 	} else {
 		e.up.Set(1)
 
@@ -107,7 +113,7 @@ func (e *Exporter) scrape() {
 			if resp, err := e.client.Health(&health.Request{
 				ProductCode: market.ProductCode,
 			}); err != nil {
-				log.Println(err)
+				log.WithError(err).Warn("failed to get health status")
 			} else {
 				e.setStatus(market.ProductCode, resp.Status)
 			}
@@ -116,7 +122,7 @@ func (e *Exporter) scrape() {
 			if resp, err := e.client.Ticker(&ticker.Request{
 				ProductCode: market.ProductCode,
 			}); err != nil {
-				log.Println(err)
+				log.WithError(err).Warn("failed to get ticker info")
 			} else {
 				e.ltp.WithLabelValues(string(market.ProductCode)).Set(resp.LTP)
 				e.bestBid.WithLabelValues(string(market.ProductCode)).Set(resp.BestBid)
@@ -295,6 +301,26 @@ func main() {
 			APISecret: *apiSecret,
 		}
 	}
+
+	log.SetOutput(os.Stdout)
+
+	var formatter log.Formatter
+	switch *logFormat {
+	case "text":
+		formatter = &log.TextFormatter{}
+	case "json":
+		formatter = &log.JSONFormatter{}
+	default:
+		log.Fatalln(errors.Errorf("invalid log format.: %s", *logFormat))
+	}
+	log.SetFormatter(formatter)
+
+	level, err := log.ParseLevel(*logLevel)
+	if err != nil {
+		log.Fatalln(errors.Wrap(err, "parse string as log level"))
+	}
+	log.SetLevel(level)
+
 	prometheus.MustRegister(newExporter(authConfig))
 	http.Handle("/metrics", promhttp.Handler())
 	log.Fatal(http.ListenAndServe(*address, nil))

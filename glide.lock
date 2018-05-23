@@ -1,5 +1,5 @@
-hash: 2b4f246c0d4917ef7ab0afa87edf3fedb2845dd64807481ad8e0ee0c61d6f1ac
-updated: 2017-12-13T02:13:11.000643717+09:00
+hash: a0e95f3478e48656352a9ce5f9db3282a54f5565799b020f9cd6afa98ae28060
+updated: 2018-05-24T02:42:32.165844955+09:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -41,6 +41,8 @@ imports:
   version: c12348ce28de40eed0136aa2b644d0ee0650e56c
   subpackages:
   - pbutil
+- name: github.com/pkg/errors
+  version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/prometheus/client_golang
   version: 967789050ba94deca04a5e84cce8ad472ce313c1
   subpackages:
@@ -60,4 +62,15 @@ imports:
   version: a6e9df898b1336106c743392c48ee0b71f5c4efa
   subpackages:
   - xfs
+- name: github.com/sirupsen/logrus
+  version: c155da19408a8799da419ed3eeb0cb5db0ad5dbc
+- name: golang.org/x/crypto
+  version: 9419663f5a44be8b34ca85f08abc5fe1be11f8a3
+  subpackages:
+  - ssh/terminal
+- name: golang.org/x/sys
+  version: 88eb85aaee56831ad49eaf7aa80d73de9814cde2
+  subpackages:
+  - unix
+  - windows
 testImports: []
