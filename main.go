@@ -5,8 +5,8 @@ package main
 
 import (
 	"flag"
+	"log"
 	"net/http"
-	"os"
 	"sync"
 	"time"
 
@@ -20,7 +20,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 const (
@@ -32,9 +32,6 @@ var (
 	address   = flag.String("listen-address", ":8080", "The address to listen on for HTTP requests.")
 	apiKey    = flag.String("api-key", "", "The API key to access bitFlyer API.")
 	apiSecret = flag.String("api-secret", "", "The API secret to access bitFlyer API.")
-
-	logLevel  = flag.String("log-level", "info", "The log level.")
-	logFormat = flag.String("log-format", "text", "The log format.")
 
 	// ProductCodes are codes of crypt currencies.
 	ProductCodes = []markets.ProductCode{
@@ -61,6 +58,8 @@ type Exporter struct {
 	totalAskDepth   *prometheus.GaugeVec
 	volume          *prometheus.GaugeVec
 	volumeByProduct *prometheus.GaugeVec
+
+	logger *zap.SugaredLogger
 }
 
 // Describe sends the descriptors of metrics
@@ -104,7 +103,9 @@ func (e *Exporter) scrape() {
 	e.totalScrapes.Inc()
 	if resp, err := e.client.Markets(&markets.Request{}); err != nil {
 		e.up.Set(0)
-		log.WithError(err).Warn("failed to get market list")
+		e.logger.Warnw("call market API",
+			"err", err,
+		)
 	} else {
 		e.up.Set(1)
 
@@ -113,7 +114,9 @@ func (e *Exporter) scrape() {
 			if resp, err := e.client.Health(&health.Request{
 				ProductCode: market.ProductCode,
 			}); err != nil {
-				log.WithError(err).Warn("failed to get health status")
+				e.logger.Warnw("call health API",
+					"err", err,
+				)
 			} else {
 				e.setStatus(market.ProductCode, resp.Status)
 			}
@@ -149,6 +152,11 @@ func (e *Exporter) setStatus(code markets.ProductCode, status health.Status) {
 }
 
 func newExporter(authConfig *auth.AuthConfig) *Exporter {
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatalf("create logger: %+v", err)
+	}
+
 	e := Exporter{
 		client: v1.NewClient(&v1.ClientOpts{
 			AuthConfig: authConfig,
@@ -255,6 +263,8 @@ func newExporter(authConfig *auth.AuthConfig) *Exporter {
 			},
 			[]string{"product_code"},
 		),
+
+		logger: logger.Sugar(),
 	}
 
 	e.up.Set(0)
@@ -281,7 +291,9 @@ func newExporter(authConfig *auth.AuthConfig) *Exporter {
 			func() error {
 				sess, err := realtimeapi.Connect()
 				if err != nil {
-					log.Fatalln("connect:", err)
+					e.logger.Fatalw("open realtime API",
+						"err", err,
+					)
 				}
 				subscriber := realtime.NewSubscriber()
 				subscriber.HandleTicker(
@@ -303,13 +315,18 @@ func newExporter(authConfig *auth.AuthConfig) *Exporter {
 						return nil
 					},
 				)
-				log.Println("connection closed:", subscriber.ListenAndServe(sess))
-				return errors.New("connection closed")
+				err = subscriber.ListenAndServe(sess)
+				e.logger.Warnw("connection closed",
+					"err", err,
+				)
+				return errors.Wrap(err, "connection closed")
 			},
 			exponentialBackoff,
 		)
 		if err != nil {
-			log.Fatalln("open realtime API:", err)
+			e.logger.Fatalw("connect realtime API",
+				"err", err,
+			)
 		}
 	}()
 
@@ -325,25 +342,6 @@ func main() {
 			APISecret: *apiSecret,
 		}
 	}
-
-	log.SetOutput(os.Stdout)
-
-	var formatter log.Formatter
-	switch *logFormat {
-	case "text":
-		formatter = &log.TextFormatter{}
-	case "json":
-		formatter = &log.JSONFormatter{}
-	default:
-		log.Fatalln(errors.Errorf("invalid log format.: %s", *logFormat))
-	}
-	log.SetFormatter(formatter)
-
-	level, err := log.ParseLevel(*logLevel)
-	if err != nil {
-		log.Fatalln(errors.Wrap(err, "parse string as log level"))
-	}
-	log.SetLevel(level)
 
 	prometheus.MustRegister(newExporter(authConfig))
 	http.Handle("/metrics", promhttp.Handler())

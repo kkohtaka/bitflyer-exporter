@@ -14,3 +14,5 @@ import:
   version: v0.8.0
 - package: github.com/cenkalti/backoff
   version: v2.0.0
+- package: go.uber.org/zap
+  version: v1.9.0
