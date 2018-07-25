@@ -12,3 +12,5 @@ import:
   version: v1.0.5
 - package: github.com/pkg/errors
   version: v0.8.0
+- package: github.com/cenkalti/backoff
+  version: v2.0.0

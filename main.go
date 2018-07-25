@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
+	"github.com/cenkalti/backoff"
 	"github.com/kkohtaka/go-bitflyer/pkg/api/auth"
 	"github.com/kkohtaka/go-bitflyer/pkg/api/realtime"
 	"github.com/kkohtaka/go-bitflyer/pkg/api/v1"
@@ -271,33 +273,43 @@ func newExporter(authConfig *auth.AuthConfig) *Exporter {
 	}
 
 	realtimeapi := realtime.NewClient()
+	exponentialBackoff := backoff.NewExponentialBackOff()
+	exponentialBackoff.MaxInterval = 15.0 * time.Minute
+	exponentialBackoff.MaxElapsedTime = 0.0
 	go func() {
-		for {
-			sess, err := realtimeapi.Connect()
-			if err != nil {
-				log.Fatal("connect:", err)
-			}
-			subscriber := realtime.NewSubscriber()
-			subscriber.HandleTicker(
-				ProductCodes,
-				func(resp ticker.Response) error {
-					func() {
-						e.mutex.Lock()
-						defer e.mutex.Unlock()
-						e.ltp.WithLabelValues(string(resp.ProductCode)).Set(resp.LTP)
-						e.bestBid.WithLabelValues(string(resp.ProductCode)).Set(resp.BestBid)
-						e.bestAsk.WithLabelValues(string(resp.ProductCode)).Set(resp.BestAsk)
-						e.bestBidSize.WithLabelValues(string(resp.ProductCode)).Set(resp.BestBidSize)
-						e.bestAskSize.WithLabelValues(string(resp.ProductCode)).Set(resp.BestAskSize)
-						e.totalBidDepth.WithLabelValues(string(resp.ProductCode)).Set(resp.TotalBidDepth)
-						e.totalAskDepth.WithLabelValues(string(resp.ProductCode)).Set(resp.TotalBidDepth)
-						e.volume.WithLabelValues(string(resp.ProductCode)).Set(resp.Volume)
-						e.volumeByProduct.WithLabelValues(string(resp.ProductCode)).Set(resp.VolumeByProduct)
-					}()
-					return nil
-				},
-			)
-			log.Print("connection closed:", subscriber.ListenAndServe(sess))
+		err := backoff.Retry(
+			func() error {
+				sess, err := realtimeapi.Connect()
+				if err != nil {
+					log.Fatalln("connect:", err)
+				}
+				subscriber := realtime.NewSubscriber()
+				subscriber.HandleTicker(
+					ProductCodes,
+					func(resp ticker.Response) error {
+						func() {
+							e.mutex.Lock()
+							defer e.mutex.Unlock()
+							e.ltp.WithLabelValues(string(resp.ProductCode)).Set(resp.LTP)
+							e.bestBid.WithLabelValues(string(resp.ProductCode)).Set(resp.BestBid)
+							e.bestAsk.WithLabelValues(string(resp.ProductCode)).Set(resp.BestAsk)
+							e.bestBidSize.WithLabelValues(string(resp.ProductCode)).Set(resp.BestBidSize)
+							e.bestAskSize.WithLabelValues(string(resp.ProductCode)).Set(resp.BestAskSize)
+							e.totalBidDepth.WithLabelValues(string(resp.ProductCode)).Set(resp.TotalBidDepth)
+							e.totalAskDepth.WithLabelValues(string(resp.ProductCode)).Set(resp.TotalBidDepth)
+							e.volume.WithLabelValues(string(resp.ProductCode)).Set(resp.Volume)
+							e.volumeByProduct.WithLabelValues(string(resp.ProductCode)).Set(resp.VolumeByProduct)
+						}()
+						return nil
+					},
+				)
+				log.Println("connection closed:", subscriber.ListenAndServe(sess))
+				return errors.New("connection closed")
+			},
+			exponentialBackoff,
+		)
+		if err != nil {
+			log.Fatalln("open realtime API:", err)
 		}
 	}()
 

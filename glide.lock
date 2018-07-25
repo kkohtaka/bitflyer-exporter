@@ -1,10 +1,12 @@
-hash: 2d5e72dc6cfbf65d3cc66752d9d7418f057b912c118b23bedfba80095dad4b25
-updated: 2018-07-25T16:21:49.306379568+09:00
+hash: a65d1343cbd42ca5a53e6d3447032b81367bfdebc6f335507ba7332063168dbc
+updated: 2018-07-25T16:24:56.900464321+09:00
 imports:
 - name: github.com/beorn7/perks
   version: 3a771d992973f24aa725d07868b467d1ddfceafb
   subpackages:
   - quantile
+- name: github.com/cenkalti/backoff
+  version: 2ea60e5f094469f9e65adb9cd103795b73ae743e
 - name: github.com/golang/protobuf
   version: 93b26e6a70e37abb14f2f88194949312b0592a84
   subpackages:
@@ -92,6 +94,10 @@ imports:
   version: c126467f60eb25f8f27e5a981f32a87e3965053f
   subpackages:
   - ssh/terminal
+- name: golang.org/x/net
+  version: 3673e40ba22529d22c3fd7c93e97b0ce50fa7bdd
+  subpackages:
+  - context
 - name: golang.org/x/sys
   version: e072cadbbdc8dd3d3ffa82b8b4b9304c261d9311
   subpackages:
