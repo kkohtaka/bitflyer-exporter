@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/kkohtaka/go-bitflyer/pkg/api/auth"
+	"github.com/kkohtaka/go-bitflyer/pkg/api/realtime"
 	"github.com/kkohtaka/go-bitflyer/pkg/api/v1"
 	"github.com/kkohtaka/go-bitflyer/pkg/api/v1/health"
 	"github.com/kkohtaka/go-bitflyer/pkg/api/v1/markets"
@@ -38,9 +39,6 @@ var (
 		"BTC_JPY",
 		"FX_BTC_JPY",
 		"ETH_BTC",
-		"BCH_BTC",
-		"BTCJPY15DEC2017",
-		"BTCJPY22DEC2017",
 	}
 )
 
@@ -116,23 +114,6 @@ func (e *Exporter) scrape() {
 				log.WithError(err).Warn("failed to get health status")
 			} else {
 				e.setStatus(market.ProductCode, resp.Status)
-			}
-
-			e.totalScrapes.Inc()
-			if resp, err := e.client.Ticker(&ticker.Request{
-				ProductCode: market.ProductCode,
-			}); err != nil {
-				log.WithError(err).Warn("failed to get ticker info")
-			} else {
-				e.ltp.WithLabelValues(string(market.ProductCode)).Set(resp.LTP)
-				e.bestBid.WithLabelValues(string(market.ProductCode)).Set(resp.BestBid)
-				e.bestAsk.WithLabelValues(string(market.ProductCode)).Set(resp.BestAsk)
-				e.bestBidSize.WithLabelValues(string(market.ProductCode)).Set(resp.BestBidSize)
-				e.bestAskSize.WithLabelValues(string(market.ProductCode)).Set(resp.BestAskSize)
-				e.totalBidDepth.WithLabelValues(string(market.ProductCode)).Set(resp.TotalBidDepth)
-				e.totalAskDepth.WithLabelValues(string(market.ProductCode)).Set(resp.TotalBidDepth)
-				e.volume.WithLabelValues(string(market.ProductCode)).Set(resp.Volume)
-				e.volumeByProduct.WithLabelValues(string(market.ProductCode)).Set(resp.VolumeByProduct)
 			}
 		}
 	}
@@ -288,6 +269,37 @@ func newExporter(authConfig *auth.AuthConfig) *Exporter {
 		e.volume.WithLabelValues(string(productCode)).Set(0)
 		e.volumeByProduct.WithLabelValues(string(productCode)).Set(0)
 	}
+
+	realtimeapi := realtime.NewClient()
+	go func() {
+		for {
+			sess, err := realtimeapi.Connect()
+			if err != nil {
+				log.Fatal("connect:", err)
+			}
+			subscriber := realtime.NewSubscriber()
+			subscriber.HandleTicker(
+				ProductCodes,
+				func(resp ticker.Response) error {
+					func() {
+						e.mutex.Lock()
+						defer e.mutex.Unlock()
+						e.ltp.WithLabelValues(string(resp.ProductCode)).Set(resp.LTP)
+						e.bestBid.WithLabelValues(string(resp.ProductCode)).Set(resp.BestBid)
+						e.bestAsk.WithLabelValues(string(resp.ProductCode)).Set(resp.BestAsk)
+						e.bestBidSize.WithLabelValues(string(resp.ProductCode)).Set(resp.BestBidSize)
+						e.bestAskSize.WithLabelValues(string(resp.ProductCode)).Set(resp.BestAskSize)
+						e.totalBidDepth.WithLabelValues(string(resp.ProductCode)).Set(resp.TotalBidDepth)
+						e.totalAskDepth.WithLabelValues(string(resp.ProductCode)).Set(resp.TotalBidDepth)
+						e.volume.WithLabelValues(string(resp.ProductCode)).Set(resp.Volume)
+						e.volumeByProduct.WithLabelValues(string(resp.ProductCode)).Set(resp.VolumeByProduct)
+					}()
+					return nil
+				},
+			)
+			log.Print("connection closed:", subscriber.ListenAndServe(sess))
+		}
+	}()
 
 	return &e
 }
