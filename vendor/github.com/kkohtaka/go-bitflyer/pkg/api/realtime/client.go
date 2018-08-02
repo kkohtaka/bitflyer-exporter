@@ -7,6 +7,7 @@ import (
 	jsonencoding "encoding/json"
 	"fmt"
 	"sync"
+	"time"
 
 	jsonrpc "github.com/gorilla/rpc/v2/json2"
 	"github.com/gorilla/websocket"
@@ -302,26 +303,31 @@ func (s *Subscriber) ListenAndServe(sess *Session) error {
 		}
 	}(sess)
 
-	for _, channel := range s.subscriptions {
-		param := RequestParam{
-			Channel: channel,
+	ticker := time.NewTicker(30 * time.Minute)
+	go func(sess *Session) {
+		for _ = range ticker.C {
+			for _, channel := range s.subscriptions {
+				param := RequestParam{
+					Channel: channel,
+				}
+				msg, err := jsonrpc.EncodeClientRequest("subscribe", param)
+				if err != nil {
+					s.logger.Warnw("encode jsonrpc",
+						"err", err,
+						"data", param,
+					)
+					continue
+				}
+				err = sess.Conn.WriteMessage(websocket.TextMessage, msg)
+				if err != nil {
+					s.logger.Warnw("write message",
+						"err", err,
+					)
+					continue
+				}
+			}
 		}
-		msg, err := jsonrpc.EncodeClientRequest("subscribe", param)
-		if err != nil {
-			s.logger.Warnw("encode jsonrpc",
-				"err", err,
-				"data", param,
-			)
-			continue
-		}
-		err = sess.Conn.WriteMessage(websocket.TextMessage, msg)
-		if err != nil {
-			s.logger.Warnw("write message",
-				"err", err,
-			)
-			continue
-		}
-	}
+	}(sess)
 
 	return <-done
 }

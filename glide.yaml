@@ -5,6 +5,7 @@ import:
   subpackages:
   - prometheus/promhttp
 - package: github.com/kkohtaka/go-bitflyer
+  version: heartbeat
   subpackages:
   - pkg/api
   - pkg/realtime
