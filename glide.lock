@@ -1,5 +1,5 @@
-hash: da05a3fdee3a0aeb91c6f7fe24bff9a42e9470120b18a4680130ac4b935cb217
-updated: 2018-07-25T15:52:02.92176144+09:00
+hash: 253ef4be4d0683c90a979cbb05aed238068ed70bb26b96d75b6159ea1e6f2b2f
+updated: 2018-08-03T09:27:30.615673254+09:00
 imports:
 - name: github.com/beorn7/perks
   version: 3a771d992973f24aa725d07868b467d1ddfceafb
@@ -8,7 +8,7 @@ imports:
 - name: github.com/cenkalti/backoff
   version: 2ea60e5f094469f9e65adb9cd103795b73ae743e
 - name: github.com/golang/protobuf
-  version: 93b26e6a70e37abb14f2f88194949312b0592a84
+  version: f5983d50c82d70eaa88c17080245cc871558081f
   subpackages:
   - proto
 - name: github.com/google/go-querystring
@@ -26,7 +26,7 @@ imports:
 - name: github.com/json-iterator/go
   version: f7279a603edee96fe7764d3de9c6ff8cf9970994
 - name: github.com/kkohtaka/go-bitflyer
-  version: 5a29788f5cae55445f148399cdaf387148a45dee
+  version: c384578f343b736950fb4cfbb3baba153fda413f
   subpackages:
   - pkg/api
   - pkg/api/auth
@@ -65,13 +65,13 @@ imports:
   subpackages:
   - go
 - name: github.com/prometheus/common
-  version: 7600349dcfe1abd18d72d3a1770870d9800a7801
+  version: c7de2306084e37d54b8be01f3541a8464345e9a5
   subpackages:
   - expfmt
   - internal/bitbucket.org/ww/goautoneg
   - model
 - name: github.com/prometheus/procfs
-  version: ae68e2d4c00fed4943b5f6698d504a5fe083da8a
+  version: 05ee40e3a273f7245e8777337fc7b46e533a9a92
   subpackages:
   - internal/util
   - nfs
@@ -90,17 +90,8 @@ imports:
   - internal/color
   - internal/exit
   - zapcore
-- name: golang.org/x/crypto
-  version: c126467f60eb25f8f27e5a981f32a87e3965053f
-  subpackages:
-  - ssh/terminal
 - name: golang.org/x/net
-  version: 3673e40ba22529d22c3fd7c93e97b0ce50fa7bdd
+  version: f4c29de78a2a91c00474a2e689954305c350adf9
   subpackages:
   - context
-- name: golang.org/x/sys
-  version: e072cadbbdc8dd3d3ffa82b8b4b9304c261d9311
-  subpackages:
-  - unix
-  - windows
 testImports: []
